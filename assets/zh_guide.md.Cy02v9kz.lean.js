@@ -1,0 +1,1 @@
+import{_ as i,c as e,o as l,ae as o}from"./chunks/framework.Dh1jimFm.js";const u=JSON.parse('{"title":"LibVI","description":"","frontmatter":{},"headers":[],"relativePath":"zh/guide.md","filePath":"zh/guide.md"}'),r={name:"zh/guide.md"};function t(d,a,c,n,h,s){return l(),e("div",null,a[0]||(a[0]=[o("",27)]))}const b=i(r,[["render",t]]);export{u as __pageData,b as default};
