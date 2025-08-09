@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+
+	<script type="text/javascript">
+		
+
+		//转成小时值
+		console.log('toHVal:');
+		function toHVal(val) {
+			var hPos = val.indexOf('h');
+			var hour = val.substring(0, hPos) - 0;
+			var mPos = val.indexOf('m');
+			var minute = val.substring(hPos + 1, mPos) - 0;
+			var sPos = val.indexOf('s');
+			var second = val.substring(mPos + 1, sPos) - 0;
+			//console.log(hour+'h'+minute+'m'+second+'s');
+			//console.log('h:' + hour);
+			var mH = minute / 60;
+			//console.log('mH:' + mH);
+			var sH = second / (60 * 60);
+			//console.log('sH:' + sH);
+			var msH = mH + sH;
+			//console.log('msH:' + msH);
+			var hVal = hour + msH + 'h';
+			//console.log('hVal:' + hVal);
+			return hVal;
+		}
+		var val = '19h 18m05.2801s';
+		toHVal(val);
+		//console.log('toDuVal:');
+		
+		//转成度值
+		function toDuVal(val) {
+			val=val.replace('-','')
+			var hPos = val.indexOf('°');
+			var hour = val.substring(0, hPos) - 0;
+			var mPos = val.indexOf('\'');
+			var minute = val.substring(hPos + 1, mPos) - 0;
+			var sPos = val.indexOf('"');
+			var second = val.substring(mPos + 1, sPos) - 0;
+			//console.log(hour+'h'+minute+'m'+second+'s');
+			//console.log('h1:' + hour);
+			var mH = minute / 60;
+			//console.log('mH1:' + mH);
+			var sH = second / (60 * 60);
+			//console.log('sH1:' + sH);
+			var msH = mH + sH;
+			//console.log('msH1:' + msH);
+			var hVal1 = hour + msH + '°';
+			//console.log('hVal1:' + hVal1);
+			return hVal1;
+		}
+		var val1 = "24°22'39.5820\"";
+		toDuVal(val1)
+		
+	</script>
+</body>
+</html>

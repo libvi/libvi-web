@@ -1,0 +1,20 @@
+
+
+一、修改精度：
+
+修改成四位精度：在eph0.js里找到function rad2str将里面的(d,tim,2)改成(d,tim,4)
+
+
+
+二、修改换算：
+
+星历计算代码所在：
+审查确定按钮，发现onclick="pCalc()"，在当前html里有function pCalc(xm){ //行星星历计算
+
+注释代码 s += xingX(xt,jd,L,fa)+'\r\n';发现经纬信息不见，说明xingX是关键，用UE全文检索xingX，发现在eph.js里：function xingX(xt,jd,L,fa){
+
+
+
+角度制：
+用度(°)、分(′)、秒(″)来测量角的大小的制度叫做角度制。
+角度制中，1°=60′，1′=60″，1′=(1/60)°，1″=(1/60)′。
