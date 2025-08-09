@@ -297,7 +297,7 @@ function xingX(xt,jd,L,fa){ //行星计算,jd力学时
   z[0] = rad2mrad(z[0]+dL); 
   s += '视黄经 ' +rad2str(z[0],0) +' 视黄纬 ' +rad2str(z[1],0) +' 地心距 ' +ra.toFixed(rfn)+'\r\n';
   z = llrConv(z,E); //转到赤道坐标
-  s += '视赤经 ' +rad2str(z[0],1) +' 视赤纬 ' +rad2str(z[1],0) +' 光行距 ' +rb.toFixed(rfn)+'\r\n';
+  s += '视赤经 ' +toHVal(rad2str(z[0],1)) +' 视赤纬 ' +toDuVal(rad2str(z[1],0)) +' 光行距 ' +rb.toFixed(rfn)+'\r\n';
 
  }
  if(xt<10){ //行星和太阳
@@ -319,12 +319,12 @@ function xingX(xt,jd,L,fa){ //行星计算,jd力学时
 
   s += '视黄经 ' +rad2str(z[0],0) +' 视黄纬 ' +rad2str(z[1],0) +' 地心距 ' +ra.toFixed(rfn)+'\r\n';
   z = llrConv(z,E); //转到赤道坐标
-  s += '视赤经 ' +rad2str(z[0],1) +' 视赤纬 ' +rad2str(z[1],0) +' 光行距 ' +rb.toFixed(rfn)+'\r\n';
+  s += '视赤经 ' +toHVal(rad2str(z[0],1)) +' 视赤纬 ' +toDuVal(rad2str(z[1],0)) +' 光行距 ' +rb.toFixed(rfn)+'\r\n';
  }
 
  var sj = rad2rrad(gst + L - z[0]); //得到天体时角
  parallax(z, sj,fa, 0); //视差修正
- s += '站赤经 ' +rad2str(z[0],1) +' 站赤纬 ' +rad2str(z[1],0) +' 视距离 ' +rc.toFixed(rfn)+'\r\n';
+ s += '站赤经 ' +toHVal(rad2str(z[0],1)) +' 站赤纬 ' +toDuVal(rad2str(z[1],0)) +' 视距离 ' +rc.toFixed(rfn)+'\r\n';
 
  z[0] += Math.PI/2-gst-L;  //修正了视差的赤道坐标
  z = llrConv( z, Math.PI/2-fa ); //转到时角坐标转到地平坐标
@@ -337,8 +337,58 @@ function xingX(xt,jd,L,fa){ //行星计算,jd力学时
  return s;
 }
 
+//TODO:M start
+//转成小时值
+function toHVal(val) {
+			var hPos = val.indexOf('h');
+			var hour = val.substring(0, hPos) - 0;
+			var mPos = val.indexOf('m');
+			var minute = val.substring(hPos + 1, mPos) - 0;
+			var sPos = val.indexOf('s');
+			var second = val.substring(mPos + 1, sPos) - 0;
+			//console.log(hour+'h'+minute+'m'+second+'s');
+			//console.log('h:' + hour);
+			
+				//console.log('mH:' + mH);
+			var sH = second / 60;
+			var mH = (minute+sH) / 60;
+		
+			//console.log('msH:' + msH);
+			var hVal = hour + mH + 'h';
+			//console.log('hVal:' + hVal);
+			return hVal;
+		}
+		
+//转成度值
+		function toDuVal(val) {
+			var pos=val.indexOf('-');
+			if(pos!=-1){
+					val=val.replace('-','');//去除前面一杠
+			}
+		
+			
+			var hPos = val.indexOf("°");
+			var hour = val.substring(0, hPos) - 0;
+			var mPos = val.indexOf("'");
+			var minute = val.substring(hPos + 1, mPos) - 0;
+			var sPos = val.indexOf('"');
+			var second = val.substring(mPos + 1, sPos) - 0;
+			//console.log(hour+'h'+minute+'m'+second+'s');
+			//console.log('h1:' + hour);
+			var sH = second / 60;
+			var mH = (minute+sH) / 60;
+		
+			//console.log('msH1:' + msH);
+			var hVal1 = hour + mH + '°';
+			//console.log('hVal1:' + hVal1);
+			if(pos!=-1){
+				hVal1='-'+hVal1;
+			}
+			
+			return hVal1;
+		}
 
-
+//TODO:M end
 //========日月食计算使用的一些函数=============
 
 function lineEll(x1,y1,z1, x2,y2,z2, e,r){ //求空间两点连线与地球的交点(靠近点x1的交点)
