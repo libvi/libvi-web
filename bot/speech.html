@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>消息语音播报示例</title>
+</head>
+<body>
+
+    <button onclick="startPolling()">开始监听</button>
+    <button onclick="clearPolling()">停止监听</button>
+
+    <script>
+        // 语音播报函数
+        function speakText(text) {
+            // 在播报前先取消当前可能存在的语音，确保新消息能立即播报[8](@ref)
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance();
+            utterance.text = text; // 设置要播报的文本
+            utterance.lang = 'zh-CN'; // 设置语言为中文
+            utterance.rate = 1.0; // 语速
+            utterance.pitch = 1.0; // 音高
+            utterance.volume = 1.0; // 音量
+
+            // 可选：监听播报事件
+            utterance.onstart = () => console.log('开始播报');
+            utterance.onend = () => console.log('播报结束');
+            utterance.onerror = (event) => console.error('播报出错:', event.error);
+
+            // 开始语音合成[7,8](@ref)
+            window.speechSynthesis.speak(utterance);
+
+        }
+
+        var index=0;
+        // 模拟从后端API检查新消息的函数
+        async function checkForNewMessages() {
+            try {
+                // 替换成您实际的后端API地址
+                // const response = await fetch('/api/check-messages');
+                // const data = await response.json();
+                
+                // // 假设接口返回格式为 { hasNewMessage: boolean, messageText: string }
+                // if (data.hasNewMessage) {
+                //     console.log('检测到新消息:', data.messageText);
+                //     // 调用语音播报
+                //     speakText(data.messageText);
+                // }
+
+                
+                  speakText(index);
+                  index++;
+
+            } catch (error) {
+                console.error('检查消息时出错:', error);
+            }
+        }
+
+        // 页面加载后，等待语音列表加载完毕再开始定时监听[8](@ref)
+        window.addEventListener('load', function() {
+            // 确保语音合成API可用[5,7](@ref)
+            if (!('speechSynthesis' in window)) {
+                console.error('您的浏览器不支持语音合成功能。');
+                return;
+            }
+
+            let voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0) {
+                // 如果初始没有获取到语音包，监听变化事件[4,7](@ref)
+                window.speechSynthesis.addEventListener('voiceschanged', function() {
+                    voices = window.speechSynthesis.getVoices();
+                    console.log('语音包加载完成，开始消息监听。');
+                   // startPolling();
+                });
+            } else {
+                //startPolling();
+            }
+
+          
+        });
+
+          var intervalMessage;
+          function startPolling() {
+                // 立即检查一次
+                checkForNewMessages();
+                // 然后每隔一段时间（例如30秒）检查一次[3,6](@ref)
+                intervalMessage=setInterval(checkForNewMessages, 3000); // 30秒
+            }
+            function clearPolling() {
+                if(intervalMessage){
+                   clearInterval(intervalMessage)
+                }
+            }
+    </script>
+</body>
+</html>
