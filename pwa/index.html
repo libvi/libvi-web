@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" default">
+    <title>语音定时播报PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        input, select {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #startBtn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        #startBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #stopBtn {
+            background: #f44336;
+            color: white;
+        }
+        
+        #stopBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .log-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            font-size: 12px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+        
+        .voice-test {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        #testVoiceBtn {
+            background: #2196F3;
+            color: white;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗣️ 语音定时播报</h1>
+        
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="interval">轮询间隔（秒）:</label>
+                <input type="number" id="interval" min="3" max="3600" value="3">
+            </div>
+            
+            <div class="input-group">
+                <label for="apiUrl">API地址（测试用）:</label>
+                <input type="text" id="apiUrl" placeholder="https://api.example.com/data" value="https://jsonplaceholder.typicode.com/posts/1">
+            </div>
+            
+            <div class="input-group">
+                <label for="voiceSelect">语音选择:</label>
+                <select id="voiceSelect">
+                    <option value="">系统默认</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="startBtn" onclick="startPolling()">开始定时</button>
+            <button id="stopBtn" onclick="stopPolling()" disabled>停止定时</button>
+        </div>
+        
+        <div class="voice-test">
+            <button id="testVoiceBtn" onclick="testVoice()">测试语音播报</button>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-item">
+                <span>定时器状态:</span>
+                <span id="timerStatus">未启动</span>
+            </div>
+            <div class="status-item">
+                <span>下次轮询:</span>
+                <span id="nextPoll">--</span>
+            </div>
+            <div class="status-item">
+                <span>语音支持:</span>
+                <span id="voiceSupport">检测中...</span>
+            </div>
+        </div>
+        
+        <div class="log-panel" id="logPanel">
+            <div class="log-entry">欢迎使用语音定时播报系统</div>
+        </div>
+    </div>
+
+    <script>
+        class VoiceTimerPWA {
+            constructor() {
+                this.pollingTimer = null;
+                this.nextPollTime = null;
+                this.isPolling = false;
+                this.speechSynth = window.speechSynthesis;
+                this.voices = [];
+                
+                this.init();
+            }
+            
+            async init() {
+                await this.initServiceWorker();
+                await this.loadVoices();
+                this.setupEventListeners();
+                this.checkVoiceSupport();
+                this.addLog('系统初始化完成');
+            }
+            
+            async initServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    try {
+                        await navigator.serviceWorker.register('./sw.js');
+                        this.addLog('Service Worker 注册成功');
+                    } catch (error) {
+                        this.addLog('Service Worker 注册失败: ' + error.message);
+                    }
+                }
+            }
+            
+            loadVoices() {
+                return new Promise((resolve) => {
+                    // 语音列表加载可能较慢，设置超时
+                    const timeout = setTimeout(() => {
+                        if (this.voices.length === 0) {
+                            this.voices = this.speechSynth.getVoices();
+                        }
+                        this.populateVoiceList();
+                        resolve();
+                    }, 1000);
+                    
+                    this.speechSynth.onvoiceschanged = () => {
+                        clearTimeout(timeout);
+                        this.voices = this.speechSynth.getVoices();
+                        this.populateVoiceList();
+                        resolve();
+                    };
+                    
+                    // 立即尝试获取一次
+                    const initialVoices = this.speechSynthesis.getVoices();
+                    if (initialVoices.length > 0) {
+                        clearTimeout(timeout);
+                        this.voices = initialVoices;
+                        this.populateVoiceList();
+                        resolve();
+                    }
+                });
+            }
+            
+            populateVoiceList() {
+                const voiceSelect = document.getElementById('voiceSelect');
+                voiceSelect.innerHTML = '<option value="">系统默认</option>';
+                
+                // 优选中文语音
+                const chineseVoices = this.voices.filter(voice => 
+                    voice.lang.includes('zh') || voice.lang.includes('CN')
+                );
+                
+                const otherVoices = this.voices.filter(voice => 
+                    !voice.lang.includes('zh') && !voice.lang.includes('CN')
+                );
+                
+                chineseVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.voiceURI;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    voiceSelect.appendChild(option);
+                });
+                
+                otherVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.voiceURI;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    voiceSelect.appendChild(option);
+                });
+                
+                this.addLog(`加载了 ${this.voices.length} 种语音，其中 ${chineseVoices.length} 种中文语音`);
+            }
+            
+            setupEventListeners() {
+                // 页面可见性变化处理（熄屏/亮屏）
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        this.addLog('页面进入后台（熄屏）');
+                    } else {
+                        this.addLog('页面回到前台');
+                    }
+                });
+                
+                // 网络状态变化处理
+                window.addEventListener('online', () => {
+                    this.addLog('网络连接恢复');
+                });
+                
+                window.addEventListener('offline', () => {
+                    this.addLog('网络连接断开');
+                });
+            }
+            
+            checkVoiceSupport() {
+                const supportElem = document.getElementById('voiceSupport');
+                if ('speechSynthesis' in window) {
+                    supportElem.textContent = '支持';
+                    supportElem.style.color = '#4CAF50';
+                } else {
+                    supportElem.textContent = '不支持';
+                    supportElem.style.color = '#f44336';
+                }
+            }
+            
+            async startPolling() {
+                if (this.isPolling) return;
+                
+                const interval = parseInt(document.getElementById('interval').value) * 1000;
+                if (interval < 3000) {
+                    alert('轮询间隔不能小于3秒');
+                    return;
+                }
+                
+                this.isPolling = true;
+                this.updateButtonStates();
+                
+                this.addLog(`开始定时轮询，间隔: ${interval/1000}秒`);
+                
+                // 立即执行第一次轮询
+                await this.executePoll();
+                
+                // 设置定时器
+                this.pollingTimer = setInterval(async () => {
+                    await this.executePoll();
+                }, interval);
+                
+                this.updateNextPollTime(interval);
+            }
+            
+            stopPolling() {
+                if (!this.isPolling) return;
+                
+                this.isPolling = false;
+                clearInterval(this.pollingTimer);
+                this.pollingTimer = null;
+                this.nextPollTime = null;
+                
+                this.updateButtonStates();
+                document.getElementById('nextPoll').textContent = '--';
+                document.getElementById('timerStatus').textContent = '已停止';
+                
+                this.addLog('定时轮询已停止');
+            }
+            
+           
+            async executePoll() {
+                try {
+                    const apiUrl = document.getElementById('apiUrl').value;
+                    this.addLog(`开始请求数据: ${apiUrl}`);
+                    
+                    // const response = await fetch(apiUrl, {
+                    //     method: 'GET',
+                    //     headers: {
+                    //         'Content-Type': 'application/json',
+                    //     },
+                    //     cache: 'no-cache'
+                    // });
+                    
+                    // if (!response.ok) {
+                    //     throw new Error(`HTTP error! status: ${response.status}`);
+                    // }
+                    
+                    // const data = await response.json();
+
+                    this.addLog('数据获取成功');
+
+
+                    // 语音播报结果
+                    //const message = this.formatDataForSpeech(data);
+                    //this.speakMessage(message);
+
+                    index++;
+                    this.speakMessage(index);
+                    
+                } catch (error) {
+                    this.addLog('请求失败: ' + error.message);
+                    this.speakMessage('数据获取失败，请检查网络连接');
+                }
+            }
+            
+            formatDataForSpeech(data) {
+                // 根据实际API响应结构调整这个函数
+                if (typeof data === 'object') {
+                    if (data.title) {
+                        return `最新数据：${data.title.substring(0, 50)}`;
+                    } else if (data.message) {
+                        return `服务器返回：${data.message}`;
+                    } else {
+                        return `收到数据更新，时间：${new Date().toLocaleTimeString()}`;
+                    }
+                }
+                return `数据更新，时间：${new Date().toLocaleTimeString()}`;
+            }
+            
+            speakMessage(message) {
+                if (!this.isPolling) return;
+                
+                if ('speechSynthesis' in window) {
+                    // 停止当前可能正在进行的语音
+                    this.speechSynth.cancel();
+                    
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 1.0;
+                    
+                    // 选择语音
+                    const voiceSelect = document.getElementById('voiceSelect');
+                    if (voiceSelect.value) {
+                        const selectedVoice = this.voices.find(voice => 
+                            voice.voiceURI === voiceSelect.value
+                        );
+                        if (selectedVoice) {
+                            utterance.voice = selectedVoice;
+                        }
+                    }
+                    
+                    utterance.onstart = () => {
+                        this.addLog('开始语音播报: ' + message);
+                    };
+                    
+                    utterance.onend = () => {
+                        this.addLog('语音播报结束');
+                    };
+                    
+                    utterance.onerror = (event) => {
+                        this.addLog('语音播报错误: ' + event.error);
+                    };
+                    
+                    this.speechSynth.speak(utterance);
+                } else {
+                    this.addLog('浏览器不支持语音合成');
+                }
+            }
+            
+            testVoice() {
+                const testMessage = '这是语音测试，当前时间：' + new Date().toLocaleTimeString();
+                this.speakMessage(testMessage);
+            }
+            
+            updateButtonStates() {
+                document.getElementById('startBtn').disabled = this.isPolling;
+                document.getElementById('stopBtn').disabled = !this.isPolling;
+                document.getElementById('timerStatus').textContent = 
+                    this.isPolling ? '运行中' : '已停止';
+            }
+            
+            updateNextPollTime(interval) {
+                this.nextPollTime = new Date(Date.now() + interval);
+                document.getElementById('nextPoll').textContent = 
+                    this.nextPollTime.toLocaleTimeString();
+            }
+            
+            addLog(message) {
+                const logPanel = document.getElementById('logPanel');
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                
+                logPanel.appendChild(logEntry);
+                logPanel.scrollTop = logPanel.scrollHeight;
+                
+                // 保持日志数量不超过50条
+                if (logPanel.children.length > 50) {
+                    logPanel.removeChild(logPanel.firstChild);
+                }
+            }
+        }
+        
+        let index=0;
+
+        // 全局函数供按钮调用
+        let voiceTimerApp;
+        
+        function startPolling() {
+            if (voiceTimerApp) {
+                voiceTimerApp.startPolling();
+            }
+        }
+        
+        function stopPolling() {
+            if (voiceTimerApp) {
+                voiceTimerApp.stopPolling();
+            }
+        }
+        
+        function testVoice() {
+            if (voiceTimerApp) {
+                voiceTimerApp.testVoice();
+            }
+        }
+        
+        // 应用初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            voiceTimerApp = new VoiceTimerPWA();
+            
+            // PWA安装提示
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                voiceTimerApp.addLog('可以将此应用安装到主屏幕以获得更好体验');
+            });
+        });
+    </script>
+</body>
+</html>

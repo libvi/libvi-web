@@ -1,0 +1,23 @@
+{
+  "name": "语音定时播报PWA",
+  "short_name": "VoiceTimer",
+  "description": "熄屏定时轮询语音播报应用",
+  "start_url": "/pwa/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2196f3",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "resources/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "resources/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}
